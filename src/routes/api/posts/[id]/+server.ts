@@ -1,4 +1,5 @@
 import { pb } from '$lib/server/pocketbase';
+import { uploadImage } from '$lib/server/images';
 import type { Post, PostCreate } from '$lib/pocketbase';
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -21,9 +22,42 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	}
 
 	try {
-		const body: Partial<PostCreate> = await request.json();
-		const post = await pb.collection('posts').update<Post>(params.id, body);
-		return json(post);
+		const contentType = request.headers.get('content-type');
+
+		if (contentType?.includes('multipart/form-data')) {
+			// Handle file upload with FormData
+			const formData = await request.formData();
+
+			const postData: Partial<PostCreate> = {
+				title: formData.get('title') as string,
+				slug: formData.get('slug') as string,
+				excerpt: formData.get('excerpt') as string,
+				content: formData.get('content') as string,
+				published: formData.get('published') === 'true'
+			};
+
+			// Upload image if provided
+			const coverImageFile = formData.get('cover_image');
+			if (coverImageFile && coverImageFile instanceof File && coverImageFile.size > 0) {
+				try {
+					const imageUrl = await uploadImage(coverImageFile);
+					postData.cover_image = imageUrl;
+				} catch (uploadErr) {
+					console.error('Image upload failed:', uploadErr);
+					throw error(500, 'Failed to upload image');
+				}
+			}
+
+			// Update the post with the image URL
+			const post = await pb.collection('posts').update<Post>(params.id, postData);
+
+			return json(post);
+		} else {
+			// Handle JSON request (URL-based image)
+			const body: Partial<PostCreate> = await request.json();
+			const post = await pb.collection('posts').update<Post>(params.id, body);
+			return json(post);
+		}
 	} catch (err: any) {
 		if (err.status === 404) {
 			throw error(404, 'Post not found');

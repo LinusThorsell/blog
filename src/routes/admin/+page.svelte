@@ -9,13 +9,47 @@
 	let excerpt = $state('');
 	let content = $state('');
 	let coverImage = $state('');
+	let coverImageFile = $state<File | null>(null);
+	let useImageUpload = $state(false);
+	let savedCoverImageUrl = $state(''); // Backup URL when switching to upload mode
 	let published = $state(false);
 
 	let isSubmitting = $state(false);
 	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let showPreview = $state(false);
 
+	let blobUrl = $state<string | null>(null);
+
+	// Manage blob URL lifecycle
+	$effect(() => {
+		let currentBlobUrl: string | null = null;
+
+		// Create new blob URL if file exists
+		if (coverImageFile) {
+			currentBlobUrl = URL.createObjectURL(coverImageFile);
+			blobUrl = currentBlobUrl;
+		} else {
+			blobUrl = null;
+		}
+
+		// Cleanup when file changes or component unmounts
+		return () => {
+			if (currentBlobUrl) {
+				URL.revokeObjectURL(currentBlobUrl);
+			}
+		};
+	});
+
+	const previewImageUrl = $derived(blobUrl || coverImage);
+
 	const previewHtml = $derived(marked(content));
+
+	function handleFileChange(e: Event) {
+		const input = e.target as HTMLInputElement;
+		if (input.files && input.files[0]) {
+			coverImageFile = input.files[0];
+		}
+	}
 
 	// Auto-generate slug from title
 	function generateSlug() {
@@ -31,18 +65,37 @@
 		message = null;
 
 		try {
-			const response = await fetch('/api/posts', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					title,
-					slug,
-					excerpt,
-					content,
-					cover_image: coverImage || undefined,
-					published
-				})
-			});
+			let response: Response;
+
+			if (useImageUpload && coverImageFile) {
+				// Use FormData for file upload
+				const formData = new FormData();
+				formData.append('title', title);
+				formData.append('slug', slug);
+				formData.append('excerpt', excerpt);
+				formData.append('content', content);
+				formData.append('published', String(published));
+				formData.append('cover_image', coverImageFile);
+
+				response = await fetch('/api/posts', {
+					method: 'POST',
+					body: formData
+				});
+			} else {
+				// Use JSON for URL-based images
+				response = await fetch('/api/posts', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						title,
+						slug,
+						excerpt,
+						content,
+						cover_image: coverImage || undefined,
+						published
+					})
+				});
+			}
 
 			if (!response.ok) {
 				const error = await response.json();
@@ -58,6 +111,9 @@
 			excerpt = '';
 			content = '';
 			coverImage = '';
+			coverImageFile = null;
+			savedCoverImageUrl = '';
+			useImageUpload = false;
 			published = false;
 		} catch (err: any) {
 			message = { type: 'error', text: err.message || 'Failed to create post' };
@@ -100,8 +156,8 @@
 				<h1 class="text-4xl font-display font-bold mb-4">{title || 'Untitled Post'}</h1>
 				<p class="text-xl text-[var(--color-muted)]">{excerpt || 'No excerpt'}</p>
 			</header>
-			{#if coverImage}
-				<img src={coverImage} alt={title} class="w-full aspect-[2/1] object-cover rounded-lg mb-8" />
+			{#if previewImageUrl}
+				<img src={previewImageUrl} alt={title} class="w-full aspect-[2/1] object-cover rounded-lg mb-8" />
 			{/if}
 			<div class="prose">
 				{@html previewHtml}
@@ -150,14 +206,66 @@
 			</div>
 
 			<div>
-				<label for="cover_image" class="block text-sm font-medium mb-2">Cover Image URL (optional)</label>
-				<input
-					type="url"
-					id="cover_image"
-					bind:value={coverImage}
-					class="w-full px-4 py-3 border border-[var(--color-border)] rounded-lg bg-[var(--color-input)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
-					placeholder="https://example.com/image.jpg"
-				/>
+				<div class="flex items-center justify-between mb-2">
+					<span class="block text-sm font-medium">Cover Image (optional)</span>
+					<div class="flex items-center gap-2 text-sm">
+						<button
+							type="button"
+							onclick={() => {
+								useImageUpload = false;
+								coverImageFile = null;
+								// Restore the saved URL
+								if (savedCoverImageUrl) {
+									coverImage = savedCoverImageUrl;
+								}
+							}}
+							class="px-3 py-1 rounded-md transition-colors {!useImageUpload
+								? 'bg-[var(--color-accent)] text-white'
+								: 'text-[var(--color-muted)] hover:bg-[var(--color-hover)]'}"
+						>
+							URL
+						</button>
+						<button
+							type="button"
+							onclick={() => {
+								useImageUpload = true;
+								// Save current URL before clearing
+								savedCoverImageUrl = coverImage;
+								coverImage = '';
+							}}
+							class="px-3 py-1 rounded-md transition-colors {useImageUpload
+								? 'bg-[var(--color-accent)] text-white'
+								: 'text-[var(--color-muted)] hover:bg-[var(--color-hover)]'}"
+						>
+							Upload
+						</button>
+					</div>
+				</div>
+
+				{#if useImageUpload}
+					<div class="relative">
+						<input
+							type="file"
+							id="cover_image_file"
+							accept="image/*"
+							onchange={handleFileChange}
+							class="w-full px-4 py-3 border border-[var(--color-border)] rounded-lg bg-[var(--color-input)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[var(--color-accent)] file:text-white hover:file:bg-[var(--color-accent-dark)] file:cursor-pointer"
+						/>
+						{#if coverImageFile}
+							<p class="mt-2 text-sm text-[var(--color-muted)]">
+								Selected: {coverImageFile.name} ({(coverImageFile.size / 1024 / 1024).toFixed(2)} MB)
+							</p>
+						{/if}
+					</div>
+				{:else}
+					<input
+						type="url"
+						id="cover_image"
+						bind:value={coverImage}
+						class="w-full px-4 py-3 border border-[var(--color-border)] rounded-lg bg-[var(--color-input)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+						placeholder="https://example.com/image.jpg"
+					/>
+				{/if}
 			</div>
 
 			<div>

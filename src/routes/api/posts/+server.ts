@@ -1,4 +1,5 @@
 import { pb } from '$lib/server/pocketbase';
+import { uploadImage } from '$lib/server/images';
 import type { Post, PostCreate } from '$lib/pocketbase';
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -29,27 +30,69 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	try {
-		const body: PostCreate = await request.json();
+		const contentType = request.headers.get('content-type');
+		let postData: PostCreate;
 
-		// Validate required fields
-		if (!body.title || !body.slug || !body.content) {
-			throw error(400, 'Missing required fields: title, slug, content');
+		if (contentType?.includes('multipart/form-data')) {
+			// Handle file upload with FormData
+			const formData = await request.formData();
+
+			postData = {
+				title: formData.get('title') as string,
+				slug: formData.get('slug') as string,
+				excerpt: formData.get('excerpt') as string,
+				content: formData.get('content') as string,
+				published: formData.get('published') === 'true'
+			};
+
+			// Validate required fields
+			if (!postData.title || !postData.slug || !postData.content) {
+				throw error(400, 'Missing required fields: title, slug, content');
+			}
+
+			// Upload image if provided
+			const coverImageFile = formData.get('cover_image');
+			if (coverImageFile && coverImageFile instanceof File && coverImageFile.size > 0) {
+				try {
+					const imageUrl = await uploadImage(coverImageFile);
+					postData.cover_image = imageUrl;
+				} catch (uploadErr) {
+					console.error('Image upload failed:', uploadErr);
+					throw error(500, 'Failed to upload image');
+				}
+			}
+
+			// Create the post with the image URL
+			const post = await pb.collection('posts').create<Post>({
+				...postData,
+				published: postData.published ?? false
+			});
+
+			return json(post, { status: 201 });
+		} else {
+			// Handle JSON request (URL-based image)
+			postData = await request.json();
+
+			// Validate required fields
+			if (!postData.title || !postData.slug || !postData.content) {
+				throw error(400, 'Missing required fields: title, slug, content');
+			}
+
+			// Create slug if not provided
+			if (!postData.slug) {
+				postData.slug = postData.title
+					.toLowerCase()
+					.replace(/[^a-z0-9]+/g, '-')
+					.replace(/(^-|-$)/g, '');
+			}
+
+			const post = await pb.collection('posts').create<Post>({
+				...postData,
+				published: postData.published ?? false
+			});
+
+			return json(post, { status: 201 });
 		}
-
-		// Create slug if not provided
-		if (!body.slug) {
-			body.slug = body.title
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/(^-|-$)/g, '');
-		}
-
-		const post = await pb.collection('posts').create<Post>({
-			...body,
-			published: body.published ?? false
-		});
-
-		return json(post, { status: 201 });
 	} catch (err: any) {
 		if (err.status) throw err;
 		console.error('Failed to create post:', err);
