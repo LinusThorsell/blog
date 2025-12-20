@@ -1,12 +1,13 @@
 services:
   traefik:
-    image: traefik:v3.2
+    image: traefik:v3.6
     container_name: traefik
     restart: unless-stopped
     command:
       # Docker provider
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=web"
       # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
@@ -53,14 +54,13 @@ services:
       - "traefik.http.routers.blog.middlewares=www-redirect"
     networks:
       - web
-      - internal
 
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:latest
     container_name: blog-pocketbase
     restart: unless-stopped
     volumes:
-      - pocketbase_data:/pb_data
+      - ./data/pocketbase:/pb_data
     command: serve --http=0.0.0.0:8090
     labels:
       - "traefik.enable=true"
@@ -71,15 +71,10 @@ services:
       - "traefik.http.services.pocketbase.loadbalancer.server.port=8090"
     networks:
       - web
-      - internal
 
 volumes:
-  pocketbase_data:
   letsencrypt:
 
 networks:
   web:
     external: true
-  internal:
-    driver: bridge
-
