@@ -18,10 +18,9 @@ services:
     image: ghcr.io/muchobien/pocketbase:latest
     ports:
       - "8090:8090"
+    environment:
+      - PB_HOST=0.0.0.0
+      - PB_PORT=8090
     volumes:
-      - pocketbase_data:/pb_data
-    command: serve --http=0.0.0.0:8090
-
-volumes:
-  pocketbase_data:
+      - ./data/pocketbase:/pb_data
 

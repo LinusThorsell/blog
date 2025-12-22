@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { marked } from 'marked';
+	import { marked } from '$lib/markdown';
 	import type { Post } from '$lib/pocketbase';
 
 	let { data } = $props();

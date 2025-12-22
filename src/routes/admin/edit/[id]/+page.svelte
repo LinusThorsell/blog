@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { marked } from 'marked';
+	import { marked } from '$lib/markdown';
 	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
 	import type { Post } from '$lib/pocketbase';

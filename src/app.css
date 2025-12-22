@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'highlight.js/styles/atom-one-dark.css';
 
 @theme {
 	--font-display: 'Playfair Display', serif;
@@ -125,12 +126,20 @@
 	border-radius: 8px;
 	overflow-x: auto;
 	margin: 1.5rem 0;
+	line-height: 1.5;
 }
 
 .prose pre code {
 	background: none;
 	padding: 0;
 	color: inherit;
+	font-size: 0.875rem;
+}
+
+/* Override highlight.js background to match our theme */
+.prose pre code.hljs {
+	background: transparent;
+	padding: 0;
 }
 
 .prose ul, .prose ol {
