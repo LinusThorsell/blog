@@ -1,4 +1,4 @@
-name: Build and Push Container Image
+name: Build and Deploy
 
 on:
   push:
@@ -15,6 +15,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
 
     steps:
       - name: Checkout
@@ -33,7 +35,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha
+            type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
@@ -43,3 +45,26 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  update-manifests:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kubes repo
+        uses: actions/checkout@v4
+        with:
+          repository: LinusThorsell/kubes
+          token: ${{ secrets.KUBES_DEPLOY_TOKEN }}
+
+      - name: Update image tag
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          sed -i "s|image: ghcr.io/linusthorsell/blog:.*|image: ghcr.io/linusthorsell/blog:sha-${SHORT_SHA}|" manifests/blog/blog-app.yaml
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifests/blog/blog-app.yaml
+          git commit -m "deploy: blog sha-$(echo '${{ github.sha }}' | cut -c1-7)"
+          git push
