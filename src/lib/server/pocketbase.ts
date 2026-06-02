@@ -1,8 +1,7 @@
 import PocketBase from 'pocketbase';
-import { POCKETBASE_URL } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
-// Server-side PocketBase client uses internal Docker network URL
-export const pb = new PocketBase(POCKETBASE_URL);
+export const pb = new PocketBase(env.POCKETBASE_URL ?? 'http://localhost:8090');
 
 // Disable auto cancellation for better control
 pb.autoCancellation(false);
