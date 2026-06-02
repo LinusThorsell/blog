@@ -1,5 +1,5 @@
 import { pb } from './pocketbase';
-import { PUBLIC_POCKETBASE_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 
 export interface ImageRecord {
 	id: string;
@@ -25,7 +25,7 @@ export async function uploadImage(file: File): Promise<string> {
 
 		// Construct the file URL using the PUBLIC URL for client access
 		// PocketBase file URL format: /api/files/{collectionId}/{recordId}/{filename}
-		const fileUrl = `${PUBLIC_POCKETBASE_URL}/api/files/${record.collectionId}/${record.id}/${record.file}`;
+		const fileUrl = `${env.PUBLIC_POCKETBASE_URL}/api/files/${record.collectionId}/${record.id}/${record.file}`;
 
 		return fileUrl;
 	} catch (error) {
