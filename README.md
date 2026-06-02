@@ -183,77 +183,59 @@ npm run preview
 
 ## Production Deployment
 
-### Prerequisites
+Production is automatically deployed to a Talos Kubernetes cluster on Hetzner Cloud via ArgoCD.
 
-- A server with Docker and Docker Compose installed
-- Domain pointed to your server (e.g., `linusthorsell.se`)
-- Subdomain for PocketBase (e.g., `pb.linusthorsell.se`)
+### How it works
 
-### 1. Create the Docker network
+1. Push to `main` on this repo
+2. GitHub Actions builds and pushes the container image to `ghcr.io/linusthorsell/blog`
+3. The workflow updates the image tag in the [kubes](https://github.com/LinusThorsell/kubes) repo
+4. ArgoCD detects the change and rolls out the new version
 
-```bash
-docker network create web
-```
+No manual steps required.
 
-### 2. Clone and deploy
+### Infrastructure
 
-```bash
-git clone <your-repo> blog
-cd blog
+| Component | Role |
+|-----------|------|
+| Talos Linux | Kubernetes OS |
+| ArgoCD | GitOps continuous delivery |
+| Hetzner CSI | Persistent storage for PocketBase |
+| ingress-nginx | Ingress controller (hostNetwork) |
+| cert-manager | Automatic TLS via Let's Encrypt |
 
-# Start production stack
-docker compose -f docker-compose.prod.yml up -d --build
-```
+### URLs
 
-### 3. Configure PocketBase
-
-1. Visit https://pb.linusthorsell.se/_/
-2. Create admin account
-3. Create `posts` collection (see Quick Start section)
-4. Create a user in `users` collection for blog login
-
-### What's included
-
-- **Traefik** reverse proxy with automatic SSL via Let's Encrypt
-- **SvelteKit** app at `https://linusthorsell.se`
-- **PocketBase** at `https://pb.linusthorsell.se`
-- Automatic HTTP → HTTPS redirect
-- WWW → non-WWW redirect
-
-### DNS Configuration
-
-Add these A records pointing to your server IP:
-
-| Type | Name | Value |
-|------|------|-------|
-| A | @ | YOUR_SERVER_IP |
-| A | www | YOUR_SERVER_IP |
-| A | pb | YOUR_SERVER_IP |
+| Service | URL |
+|---------|-----|
+| Blog | https://linusthorsell.se |
+| PocketBase | https://pb.linusthorsell.se |
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| ORIGIN | Your domain URL | https://linusthorsell.se |
-| PUBLIC_POCKETBASE_URL | PocketBase URL (browser) | https://pb.linusthorsell.se |
-| POCKETBASE_URL | PocketBase URL (server-side) | http://pocketbase:8090 |
-| ACME_EMAIL | Email for Let's Encrypt | admin@linusthorsell.se |
+Set at the Kubernetes Deployment level in `kubes/manifests/blog/`:
+
+| Variable | Value |
+|----------|-------|
+| ORIGIN | https://linusthorsell.se |
+| PUBLIC_POCKETBASE_URL | https://pb.linusthorsell.se |
+| POCKETBASE_URL | http://pocketbase.blog.svc.cluster.local:8090 |
 
 ### Useful commands
 
 ```bash
+# Check deployment status
+kubectl get pods -n blog
+
 # View logs
-docker compose -f docker-compose.prod.yml logs -f
+kubectl logs -n blog deployment/blog
+kubectl logs -n blog deployment/pocketbase
 
-# Restart services
-docker compose -f docker-compose.prod.yml restart
+# Restart a deployment
+kubectl rollout restart deployment/blog -n blog
 
-# Update and rebuild
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
-
-# Backup PocketBase data
-docker cp blog-pocketbase:/pb_data ./backup
+# Check ArgoCD sync status
+argocd app get blog
 ```
 
 ## License
