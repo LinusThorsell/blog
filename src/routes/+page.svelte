@@ -17,7 +17,7 @@
 			Sounds like a Linus <br/> story to me
 		</h1>
 		<p class="text-xl text-[var(--color-muted)] max-w-2xl mx-auto leading-relaxed">
-			Exploring thoughts, going on adventures, sharing knowledge, <br/> and documenting the journey à la 2011 style.<br>
+			Exploring thoughts, going on adventures, sharing knowledge, and documenting the journey à la 2011 style.
 		</p>
 	</div>
 
