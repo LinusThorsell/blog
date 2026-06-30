@@ -14,11 +14,10 @@
 	<!-- Hero Section -->
 	<div class="text-center mb-16">
 		<h1 class="text-5xl md:text-6xl font-display font-bold mb-6 leading-tight">
-			Stories, Tech & Ideas
+			Sounds like a Linus <br/> story to me
 		</h1>
 		<p class="text-xl text-[var(--color-muted)] max-w-2xl mx-auto leading-relaxed">
-			Exploring thoughts, sharing knowledge, and documenting the journey.<br>
-			Written all by myself and my cup of coffee &hearts;
+			Exploring thoughts, going on adventures, sharing knowledge, <br/> and documenting the journey à la 2011 style.<br>
 		</p>
 	</div>
 
