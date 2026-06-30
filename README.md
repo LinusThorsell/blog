@@ -7,6 +7,7 @@ A beautiful, modern blog built with **Svelte 5** (with runes), **SvelteKit**, **
 ## Features
 
 - ✍️ **Markdown Support** - Write posts in Markdown with live preview
+- 🖼️ **Image Uploads** - Cover images and inline editor images upload to PocketBase
 - 🚀 **Server-Side Rendering** - Fast initial loads with SvelteKit SSR
 - 🎨 **Beautiful Design** - Clean, typography-focused aesthetic
 - 📱 **Responsive** - Mobile-first design that works everywhere
@@ -69,6 +70,23 @@ This will start:
    - **List/Search rule**: Leave empty (public access)
    - **View rule**: Leave empty (public access)
    - **Create/Update/Delete rules**: Leave empty or set `@request.auth.id != ""`
+
+#### Create the `images` collection:
+
+The editor and cover image upload flows both use the same `images` collection. Uploaded files are stored in PocketBase and the generated public file URL is saved in the post markdown or `cover_image` field.
+
+1. Click "New collection" and name it `images`
+2. Add this field:
+
+| Field Name | Type | Options  |
+|------------|------|----------|
+| file       | File | Required |
+
+3. In the **API rules** tab, set:
+   - **List/Search rule**: Leave empty, or restrict it if you do not need image collection listing
+   - **View rule**: Leave empty so public blog posts can render uploaded images
+   - **Create rule**: Leave empty or set `@request.auth.id != ""`
+   - **Update/Delete rules**: Set `@request.auth.id != ""`
 
 #### Create a blog user:
 
@@ -245,4 +263,3 @@ MIT
 ---
 
 Built with ❤️ using Svelte 5, SvelteKit, and PocketBase
-

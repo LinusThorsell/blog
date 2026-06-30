@@ -21,10 +21,11 @@
     "vite": "^6.0.0"
   },
   "dependencies": {
+    "@milkdown/kit": "^7.21.2",
+    "@milkdown/theme-nord": "^7.21.2",
     "highlight.js": "^11.10.0",
     "marked": "^15.0.0",
     "marked-highlight": "^2.1.0",
     "pocketbase": "^0.25.0"
   }
 }
-

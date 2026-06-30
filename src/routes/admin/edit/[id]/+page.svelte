@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
 	import type { Post } from '$lib/pocketbase';
+	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
 
 	let { data } = $props();
 
@@ -314,14 +315,10 @@
 					Content
 					<span class="text-[var(--color-muted)] font-normal">(Markdown supported)</span>
 				</label>
-				<textarea
+				<MarkdownEditor
 					id="content"
 					bind:value={content}
-					rows="20"
-					required
-					class="w-full px-4 py-3 border border-[var(--color-border)] rounded-lg bg-[var(--color-input)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent font-mono text-sm"
-					placeholder="Write your post content in Markdown..."
-				></textarea>
+				/>
 			</div>
 
 			<div class="flex items-center gap-3">
@@ -402,4 +399,3 @@
 		</div>
 	{/if}
 </div>
-
