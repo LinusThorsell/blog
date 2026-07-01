@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '@milkdown/theme-nord/style.css';
 	import '@milkdown/kit/prose/view/style/prosemirror.css';
+	import { readErrorMessage, readJsonResponse } from '$lib/http';
 	import { onDestroy, onMount } from 'svelte';
 
 	type UploadedImage = {
@@ -37,11 +38,10 @@
 		});
 
 		if (!response.ok) {
-			const error = await response.json().catch(() => null);
-			throw new Error(error?.message || 'Failed to upload images');
+			throw new Error(await readErrorMessage(response, 'Failed to upload images'));
 		}
 
-		const result = (await response.json()) as { images: UploadedImage[] };
+		const result = await readJsonResponse<{ images: UploadedImage[] }>(response);
 		return result.images;
 	}
 

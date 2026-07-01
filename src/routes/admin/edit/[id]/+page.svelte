@@ -4,6 +4,7 @@
 	import { untrack } from 'svelte';
 	import type { Post } from '$lib/pocketbase';
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
+	import { readErrorMessage, readJsonResponse } from '$lib/http';
 
 	let { data } = $props();
 
@@ -106,11 +107,10 @@
 			}
 
 			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.message || 'Failed to update post');
+				throw new Error(await readErrorMessage(response, 'Failed to update post'));
 			}
 
-			const post: Post = await response.json();
+			const post = await readJsonResponse<Post>(response);
 			message = { type: 'success', text: 'Post updated successfully!' };
 			
 			// Update the original data to reset hasChanges
@@ -136,8 +136,7 @@
 			});
 
 			if (!response.ok && response.status !== 204) {
-				const error = await response.json();
-				throw new Error(error.message || 'Failed to delete post');
+				throw new Error(await readErrorMessage(response, 'Failed to delete post'));
 			}
 
 			goto('/admin');

@@ -38,6 +38,7 @@ services:
       - ORIGIN=https://linusthorsell.se
       - PUBLIC_POCKETBASE_URL=https://pb.linusthorsell.se
       - POCKETBASE_URL=http://pocketbase:8090
+      - BODY_SIZE_LIMIT=50M
     depends_on:
       - pocketbase
     labels:
