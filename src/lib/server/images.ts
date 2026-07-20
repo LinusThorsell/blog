@@ -1,5 +1,6 @@
 import { pb } from './pocketbase';
 import { env } from '$env/dynamic/public';
+import { flattenMotionPhoto } from './image-files';
 
 export interface ImageRecord {
 	id: string;
@@ -29,9 +30,11 @@ export async function getPanoramaImageUrls(): Promise<string[]> {
  */
 export async function uploadImage(file: File, isPanorama = false): Promise<string> {
 	try {
+		const stillImage = await flattenMotionPhoto(file);
+
 		// Create FormData for the upload
 		const formData = new FormData();
-		formData.append('file', file);
+		formData.append('file', stillImage);
 		formData.append('is_panorama', String(isPanorama));
 
 		// Upload to images collection
