@@ -78,9 +78,10 @@ The editor and cover image upload flows both use the same `images` collection. U
 1. Click "New collection" and name it `images`
 2. Add this field:
 
-| Field Name | Type | Options  |
-|------------|------|----------|
-| file       | File | Required |
+| Field Name  | Type | Options       |
+|-------------|------|---------------|
+| file        | File | Required      |
+| is_panorama | Bool | Default false |
 
 3. In the **API rules** tab, set:
    - **List/Search rule**: Leave empty, or restrict it if you do not need image collection listing

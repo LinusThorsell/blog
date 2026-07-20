@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { marked } from '$lib/markdown';
+	import { renderMarkdown } from '$lib/markdown';
 
 	let { data } = $props();
 
-	const htmlContent = $derived(marked(data.post.content));
+	const htmlContent = $derived(renderMarkdown(data.post.content, data.panoramaImageUrls));
 
 	function formatDate(dateString: string): string {
 		return new Date(dateString).toLocaleDateString('en-US', {
@@ -79,4 +79,3 @@
 		</div>
 	</footer>
 </article>
-

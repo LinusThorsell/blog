@@ -4,14 +4,27 @@
 	import { readErrorMessage, readJsonResponse } from '$lib/http';
 	import { onDestroy, onMount } from 'svelte';
 
+	const PANORAMA_MIN_ASPECT_RATIO = 2.4;
+
 	type UploadedImage = {
 		url: string;
 		alt: string;
+		isPanorama: boolean;
 	};
 
-	let { value = $bindable(''), id = 'markdown-editor' } = $props<{
+	type PanoramaPrompt = {
+		file: File;
+		resolve: (isPanorama: boolean) => void;
+	};
+
+	let {
+		value = $bindable(''),
+		id = 'markdown-editor',
+		panoramaImageUrls = $bindable([] as string[])
+	} = $props<{
 		value: string;
 		id?: string;
+		panoramaImageUrls?: string[];
 	}>();
 
 	let root: HTMLDivElement;
@@ -22,6 +35,35 @@
 	let isReady = $state(false);
 	let isUploading = $state(false);
 	let uploadError = $state('');
+	let panoramaPrompt = $state<PanoramaPrompt | null>(null);
+
+	async function isWideImage(file: File): Promise<boolean> {
+		const url = URL.createObjectURL(file);
+
+		try {
+			const image = new Image();
+			image.src = url;
+			await image.decode();
+
+			return image.naturalWidth / image.naturalHeight >= PANORAMA_MIN_ASPECT_RATIO;
+		} catch {
+			return false;
+		} finally {
+			URL.revokeObjectURL(url);
+		}
+	}
+
+	function confirmPanorama(file: File): Promise<boolean> {
+		return new Promise((resolve) => {
+			panoramaPrompt = { file, resolve };
+		});
+	}
+
+	function resolvePanorama(isPanorama: boolean) {
+		const prompt = panoramaPrompt;
+		panoramaPrompt = null;
+		prompt?.resolve(isPanorama);
+	}
 
 	async function uploadImages(files: File[]): Promise<UploadedImage[]> {
 		const images = files.filter((file) => file.type.startsWith('image/'));
@@ -29,7 +71,9 @@
 
 		const formData = new FormData();
 		for (const image of images) {
+			const isPanorama = (await isWideImage(image)) && (await confirmPanorama(image));
 			formData.append('images', image);
+			formData.append('is_panorama', String(isPanorama));
 		}
 
 		const response = await fetch('/api/images', {
@@ -42,6 +86,10 @@
 		}
 
 		const result = await readJsonResponse<{ images: UploadedImage[] }>(response);
+		panoramaImageUrls = [
+			...panoramaImageUrls,
+			...result.images.filter((image) => image.isPanorama).map((image) => image.url)
+		];
 		return result.images;
 	}
 
@@ -129,6 +177,7 @@
 	});
 
 	onDestroy(() => {
+		panoramaPrompt?.resolve(false);
 		editor?.destroy();
 	});
 </script>
@@ -156,6 +205,35 @@
 		class="sr-only"
 		onchange={handleManualUpload}
 	/>
+
+	{#if panoramaPrompt}
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+			<dialog
+				open
+				class="w-full max-w-md rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-[var(--color-ink)] shadow-xl"
+				aria-labelledby="panorama-dialog-title"
+			>
+				<h2 id="panorama-dialog-title" class="text-xl font-display font-bold">Use as a panorama?</h2>
+				<p class="mt-2 text-[var(--color-muted)]">{panoramaPrompt.file.name}</p>
+				<div class="mt-6 flex justify-end gap-3">
+					<button
+						type="button"
+						onclick={() => resolvePanorama(false)}
+						class="px-4 py-2 border border-[var(--color-border)] rounded-lg hover:bg-[var(--color-hover)] transition-colors cursor-pointer"
+					>
+						Regular image
+					</button>
+					<button
+						type="button"
+						onclick={() => resolvePanorama(true)}
+						class="px-4 py-2 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent-dark)] transition-colors cursor-pointer"
+					>
+						Panorama
+					</button>
+				</div>
+			</dialog>
+		</div>
+	{/if}
 
 	<div
 		{id}

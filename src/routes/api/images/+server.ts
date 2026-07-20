@@ -9,6 +9,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	const formData = await request.formData();
 	const files = formData.getAll('images').filter((file): file is File => file instanceof File);
+	const panoramaValues = formData.getAll('is_panorama');
 
 	if (files.length === 0) {
 		throw error(400, 'No image files provided');
@@ -16,15 +17,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	try {
 		const images = await Promise.all(
-			files.map(async (file) => {
+			files.map(async (file, index) => {
 				if (!file.type.startsWith('image/')) {
 					throw error(400, `${file.name || 'Uploaded file'} is not an image`);
 				}
 
-				const url = await uploadImage(file);
+				const isPanorama = panoramaValues[index] === 'true';
+				const url = await uploadImage(file, isPanorama);
 				return {
 					url,
-					alt: file.name.replace(/\.[^.]+$/, '')
+					alt: file.name.replace(/\.[^.]+$/, ''),
+					isPanorama
 				};
 			})
 		);

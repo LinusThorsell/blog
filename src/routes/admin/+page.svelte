@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { marked } from '$lib/markdown';
+	import { renderMarkdown } from '$lib/markdown';
 	import type { Post } from '$lib/pocketbase';
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
 	import { readErrorMessage, readJsonResponse } from '$lib/http';
+	import { untrack } from 'svelte';
 
 	let { data } = $props();
 
@@ -19,6 +20,7 @@
 	let isSubmitting = $state(false);
 	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let showPreview = $state(false);
+	let panoramaImageUrls = $state(untrack(() => data.panoramaImageUrls));
 
 	let blobUrl = $state<string | null>(null);
 
@@ -44,7 +46,7 @@
 
 	const previewImageUrl = $derived(blobUrl || coverImage);
 
-	const previewHtml = $derived(marked(content));
+	const previewHtml = $derived(renderMarkdown(content, panoramaImageUrls));
 
 	function handleFileChange(e: Event) {
 		const input = e.target as HTMLInputElement;
@@ -277,6 +279,7 @@
 				<MarkdownEditor
 					id="content"
 					bind:value={content}
+					bind:panoramaImageUrls
 				/>
 			</div>
 

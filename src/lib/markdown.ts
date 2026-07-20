@@ -1,4 +1,4 @@
-import { marked } from 'marked';
+import { marked, Renderer } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 
@@ -16,3 +16,23 @@ marked.use(
 // Export configured marked instance
 export { marked };
 
+export function renderMarkdown(content: string, panoramaImageUrls: readonly string[]): string {
+	const panoramaUrls = new Set(panoramaImageUrls);
+	const renderer = new Renderer();
+	const renderImage = renderer.image.bind(renderer);
+
+	renderer.image = (token) => {
+		if (!panoramaUrls.has(token.href)) {
+			return renderImage(token);
+		}
+
+		return `<span class="panorama">
+	<span class="panorama__viewport" role="region" aria-label="Panorama. Scroll horizontally to explore.">
+	${renderImage(token)}
+	</span>
+	<span class="panorama__hint">Scroll sideways to explore</span>
+</span>`;
+	};
+
+	return marked.parse(content, { async: false, renderer });
+}

@@ -1,4 +1,5 @@
 import { pb } from '$lib/server/pocketbase';
+import { getPanoramaImageUrls } from '$lib/server/images';
 import type { Post } from '$lib/pocketbase';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
@@ -11,13 +12,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	try {
 		// Fetch all posts (including drafts) for admin view
-		const posts = await pb.collection('posts').getFullList<Post>({
-			sort: '-created'
-		});
-		return { posts };
+		const [posts, panoramaImageUrls] = await Promise.all([
+			pb.collection('posts').getFullList<Post>({ sort: '-created' }),
+			getPanoramaImageUrls()
+		]);
+		return { posts, panoramaImageUrls };
 	} catch (error) {
 		console.error('Failed to fetch posts:', error);
-		return { posts: [] };
+		return { posts: [], panoramaImageUrls: [] };
 	}
 };
-

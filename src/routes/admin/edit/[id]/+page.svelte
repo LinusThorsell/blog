@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { marked } from '$lib/markdown';
+	import { renderMarkdown } from '$lib/markdown';
 	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
 	import type { Post } from '$lib/pocketbase';
@@ -25,6 +25,7 @@
 	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let showPreview = $state(false);
 	let showDeleteConfirm = $state(false);
+	let panoramaImageUrls = $state(untrack(() => data.panoramaImageUrls));
 
 	let blobUrl = $state<string | null>(null);
 
@@ -50,7 +51,7 @@
 
 	const previewImageUrl = $derived(blobUrl || coverImage);
 
-	const previewHtml = $derived(marked(content));
+	const previewHtml = $derived(renderMarkdown(content, panoramaImageUrls));
 	const hasChanges = $derived(
 		title !== data.post.title ||
 		slug !== data.post.slug ||
@@ -317,6 +318,7 @@
 				<MarkdownEditor
 					id="content"
 					bind:value={content}
+					bind:panoramaImageUrls
 				/>
 			</div>
 
